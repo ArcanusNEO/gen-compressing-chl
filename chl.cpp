@@ -11,7 +11,7 @@ const char opt_head = '-';
 
 // -o -p -t -vvv
 string   input_file = "-", output_path = "out", prime_path = "prime";
-unsigned thread_number = thread::hardware_concurrency();
+unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
 enum log_level_t { LOG_SILENT, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG };
 unsigned log_level = LOG_SILENT;
