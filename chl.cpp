@@ -10,7 +10,7 @@ const char opt_head = '-';
 #endif
 
 // -o -p -t -vvv
-string   input_path = "-", output_path = "out", prime_path = "prime";
+string   input_file = "-", output_path = "out", prime_path = "prime";
 unsigned thread_number = thread::hardware_concurrency();
 
 enum log_level_t { LOG_SILENT, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG };
@@ -51,7 +51,7 @@ void parse_opt(char* opt_token) {
   if (opt_type == CMD_OPTION_NULL) opt_type = CMD_OPTION_INPUT_PATH;
   switch (opt_type) {
     case CMD_OPTION_INPUT_PATH:
-      input_path = opt_token;
+      input_file = opt_token;
       opt_type   = CMD_OPTION_NULL;
       break;
     case CMD_OPTION_OUTPUT_PATH:
@@ -171,7 +171,8 @@ signed main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) parse_opt(argv[i]);
   thread_number = max(thread_number, 1U);
   if (log_level >= LOG_INFO)
-    cerr << "[info] input_path " << input_path << endl
+    cerr << "[info] begin CHL..." << endl
+         << "[info] input_file " << input_file << endl
          << "[info] output_path " << output_path << endl
          << "[info] prime_path " << prime_path << endl
          << "[info] thread_number " << thread_number << endl
@@ -180,10 +181,11 @@ signed main(int argc, char* argv[]) {
   fs::create_directory(output_path);
   ifstream   ifs;
   streambuf* cin_buf = nullptr;
-  if (input_path != "-") {
-    ifs.open(input_path);
+  if (input_file != "-") {
+    ifs.open(input_file);
     cin_buf = cin.rdbuf(ifs.rdbuf());
   }
   read_sequence();
   if (cin_buf) cin.rdbuf(cin_buf);
+  get_hash_sz();
 }
