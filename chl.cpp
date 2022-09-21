@@ -9,7 +9,7 @@ const char opt_head = '/';
 const char opt_head = '-';
 #endif
 
-// -o -p -t -vvv
+// -o -p -t -vvv -s
 string   input_file = "-", output_path = "out", prime_path = "prime";
 unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
@@ -22,7 +22,8 @@ enum cmd_opt_t {
   CMD_OPTION_OUTPUT_PATH,
   CMD_OPTION_PRIME_PATH,
   CMD_OPTION_THREAD_NUMBER,
-  CMD_OPTION_LOG_LEVEL
+  CMD_OPTION_LOG_LEVEL,
+  CMD_OPTION_LOG_LEVEL_SILENT
 };
 
 void parse_opt(char* opt_token) {
@@ -45,6 +46,11 @@ void parse_opt(char* opt_token) {
         opt_type  = CMD_OPTION_LOG_LEVEL;
         log_level = 1;
         for (opt_token += 2; *opt_token == 'v'; ++opt_token) ++log_level;
+        break;
+      case 's':
+        opt_type = CMD_OPTION_LOG_LEVEL_SILENT;
+        opt_token += 2;
+        log_level = 0;
         break;
       default: break;
     }
@@ -69,6 +75,7 @@ void parse_opt(char* opt_token) {
       break;
     }
     case CMD_OPTION_LOG_LEVEL: opt_type = CMD_OPTION_NULL; break;
+    case CMD_OPTION_LOG_LEVEL_SILENT: opt_type = CMD_OPTION_NULL; break;
     default: break;
   }
 }
@@ -84,23 +91,27 @@ const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
 
 uint64_t read_v[MX_READ_LIST_SZ][4];
 size_t   read_counter;
+uint64_t read_valid_bit[4];
 
 struct chl_key_t {
   uint32_t key_id  = 0;
   uint16_t key_pos = 0;
 };
 
-using list_chl_key_t = list<chl_key_t>;
-
+struct list_chl_key_t {
+  list<chl_key_t> ls;
+  uint32_t        unhash;
+};
 #ifndef MX_HASH_TABLE_SZ
 #  define MX_HASH_TABLE_SZ 0x0f000000
 #endif
+
 list<list_chl_key_t> hash_table[MX_HASH_TABLE_SZ];
 
 size_t   hash_table_sz;
 unsigned read_len;
 
-void get_hash_sz() {
+void init_hash() {
   unsigned min_hash_tab_sz = 1.5 * read_len;
   fs::path p_file(prime_path);
   switch (min_hash_tab_sz) {
@@ -129,7 +140,7 @@ void get_hash_sz() {
       break;
   }
   if (log_level >= LOG_INFO)
-    cerr << "[info] select prime number file " << p_file << endl;
+    cerr << "[info] select prime number file " << fs::path(p_file) << endl;
   ifstream   ifs(p_file);
   streambuf* cin_buf = cin.rdbuf(ifs.rdbuf());
   string     prime_str;
@@ -150,12 +161,14 @@ void read_sequence() {
     unsigned i        = 0;
     for (const auto& ch : base_seq_str) {
       auto j = base_ai_map[ch];
-      base_seq[i >> 5] |= j << ((i & 0x1f) << 1);
+      base_seq[i >> 5] |= (uint64_t) j << ((i & 0x1f) << 1);
       ++i;
     }
     read_len = i;
   }
   if (log_level >= LOG_INFO) cerr << "[info] reads count " << read_len << endl;
+  // TODO
+  // init read_valid_bit
 }
 
 void init() {
@@ -167,14 +180,28 @@ void init() {
   base_ai_map['g'] = base_ai_map['G'] = 0x02;
 }
 
+void reverse_read(uint64_t base_seq[4]) {
+}
+
+void flip_read(uint64_t base_seq[4]) {
+  base_seq[0] = ~base_seq[0] & read_valid_bit[0];
+  base_seq[1] = ~base_seq[1] & read_valid_bit[1];
+  base_seq[2] = ~base_seq[2] & read_valid_bit[2];
+  base_seq[3] = ~base_seq[3] & read_valid_bit[3];
+}
+
+void chl() {
+  for (int i = 0; i < read_counter; ++i) { }
+}
+
 signed main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) parse_opt(argv[i]);
   thread_number = max(thread_number, 1U);
   if (log_level >= LOG_INFO)
     cerr << "[info] begin CHL..." << endl
-         << "[info] input_file " << input_file << endl
-         << "[info] output_path " << output_path << endl
-         << "[info] prime_path " << prime_path << endl
+         << "[info] input_file " << fs::path(input_file) << endl
+         << "[info] output_path " << fs::path(output_path) << endl
+         << "[info] prime_path " << fs::path(prime_path) << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;
   fs::remove(output_path);
@@ -187,5 +214,6 @@ signed main(int argc, char* argv[]) {
   }
   read_sequence();
   if (cin_buf) cin.rdbuf(cin_buf);
-  get_hash_sz();
+  init_hash();
+  chl();
 }
