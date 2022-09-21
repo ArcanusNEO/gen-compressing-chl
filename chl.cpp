@@ -109,7 +109,7 @@ struct list_chl_key_t {
 list<list_chl_key_t> hash_table[MX_HASH_TABLE_SZ];
 
 size_t   hash_table_sz;
-unsigned read_len;
+uint32_t read_len;
 
 void init_hash() {
   unsigned min_hash_tab_sz = 1.5 * read_len;
@@ -158,7 +158,7 @@ void read_sequence() {
   string base_seq_str;
   while (cin >> base_seq_str) {
     auto&    base_seq = read_v[read_counter++];
-    unsigned i        = 0;
+    uint32_t i        = 0;
     for (const auto& ch : base_seq_str) {
       auto j = base_ai_map[ch];
       base_seq[i >> 5] |= (uint64_t) j << ((i & 0x1f) << 1);
@@ -167,8 +167,11 @@ void read_sequence() {
     read_len = i;
   }
   if (log_level >= LOG_INFO) cerr << "[info] reads count " << read_len << endl;
-  // TODO
-  // init read_valid_bit
+  memset(read_valid_bit, 0xff, read_len >> 2);
+  uint8_t*      ptr       = (uint8_t*) read_valid_bit + (read_len >> 2);
+  uint8_t       i         = read_len & 0x03;
+  const uint8_t bit_tab[] = {0x00, 0xc0, 0xf0, 0xfc};
+  *ptr |= bit_tab[i];
 }
 
 void init() {
