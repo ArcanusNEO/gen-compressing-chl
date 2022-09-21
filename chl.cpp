@@ -223,10 +223,26 @@ uint32_t get_hash(const read_t& r, uint32_t modulo) {
 
 void chl() {
   for (uint32_t id = 0; id < read_counter; ++id) {
-    uint32_t hval     = get_hash(read_v[id], hash_table_sz);
-    read_t   rev_read = read_v[id];
-    reverse_read(rev_read);
-    uint32_t rhval = get_hash(rev_read, hash_table_sz);
+    read_t   read_seq = read_v[id];
+    uint32_t hval     = get_hash(read_seq, hash_table_sz);
+    // TODO
+    // 1 源序列循环状态
+
+    read_seq.flip();
+    uint32_t fhval = get_hash(read_seq, hash_table_sz);
+    // TODO
+    // 2 逆序列循环状态
+    read_seq.flip();
+
+    reverse_read(read_seq);
+    uint32_t rhval = get_hash(read_seq, hash_table_sz);
+    // TODO
+    // 3 补序列循环状态
+
+    read_seq.flip();
+    uint32_t rfhval = get_hash(read_seq, hash_table_sz);
+    // TODO
+    // 4 补序列的逆向循环状态
 
     list_chl_key_t ls;
     ls.push_back((chl_key_t){.id = id, .pos = 0});
