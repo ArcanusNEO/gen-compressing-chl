@@ -86,33 +86,34 @@ uint8_t    base_ai_map[256];
 const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
 
 #ifndef MX_READ_LIST_SZ
-#  define MX_READ_LIST_SZ 0x0f000000
+#  define MX_READ_LIST_SZ 0x10000000
 #endif
 
-uint64_t read_v[MX_READ_LIST_SZ][4];
-size_t   read_counter;
-uint64_t read_valid_bit[4];
+#ifndef READ_LENGTH
+#  define READ_LENGTH 150
+#  define BITSET_SZ   (READ_LENGTH * 2)
+#endif
+
+using read_t = bitset<BITSET_SZ>;
+read_t   read_v[MX_READ_LIST_SZ];
+uint32_t read_counter;
 
 struct chl_key_t {
-  uint32_t key_id  = 0;
-  uint16_t key_pos = 0;
+  uint32_t id;
+  uint16_t pos;
 };
+using list_chl_key_t = list<chl_key_t>;
 
-struct list_chl_key_t {
-  list<chl_key_t> ls;
-  uint32_t        unhash;
-};
 #ifndef MX_HASH_TABLE_SZ
-#  define MX_HASH_TABLE_SZ 0x0f000000
+#  define MX_HASH_TABLE_SZ 0x20000000
 #endif
 
 list<list_chl_key_t> hash_table[MX_HASH_TABLE_SZ];
 
-size_t   hash_table_sz;
-uint32_t read_len;
+uint32_t hash_table_sz;
 
 void init_hash() {
-  unsigned min_hash_tab_sz = 1.5 * read_len;
+  uint32_t min_hash_tab_sz = 1.5 * read_counter;
   fs::path p_file(prime_path);
   switch (min_hash_tab_sz) {
     case 2 ... 15485863: p_file /= "2_15485863.txt"; break;
@@ -137,7 +138,7 @@ void init_hash() {
       if (log_level >= LOG_WARNING)
         cerr << "[warning] max prime number (" << hash_table_sz << ") reached"
              << endl;
-      break;
+      return;
   }
   if (log_level >= LOG_INFO)
     cerr << "[info] select prime number file " << fs::path(p_file) << endl;
@@ -160,18 +161,14 @@ void read_sequence() {
     auto&    base_seq = read_v[read_counter++];
     uint32_t i        = 0;
     for (const auto& ch : base_seq_str) {
-      auto j = base_ai_map[ch];
-      base_seq[i >> 5] |= (uint64_t) j << ((i & 0x1f) << 1);
+      auto j               = base_ai_map[ch];
+      base_seq[i << 1]     = j & 0x02;
+      base_seq[i << 1 | 1] = j & 0x01;
       ++i;
     }
-    read_len = i;
   }
-  if (log_level >= LOG_INFO) cerr << "[info] reads count " << read_len << endl;
-  memset(read_valid_bit, 0xff, read_len >> 2);
-  uint8_t*      ptr       = (uint8_t*) read_valid_bit + (read_len >> 2);
-  uint8_t       i         = read_len & 0x03;
-  const uint8_t bit_tab[] = {0x00, 0xc0, 0xf0, 0xfc};
-  *ptr |= bit_tab[i];
+  if (log_level >= LOG_INFO)
+    cerr << "[info] reads count " << read_counter << endl;
 }
 
 void init() {
@@ -183,18 +180,55 @@ void init() {
   base_ai_map['g'] = base_ai_map['G'] = 0x02;
 }
 
-void reverse_read(uint64_t base_seq[4]) {
+inline void cycle_shift_right(read_t& r) {
+  bool b[2] = {r[1], r[0]};
+  r >>= 2;
+  r.set(BITSET_SZ - 1, b[1]);
+  r.set(BITSET_SZ - 2, b[0]);
 }
 
-void flip_read(uint64_t base_seq[4]) {
-  base_seq[0] = ~base_seq[0] & read_valid_bit[0];
-  base_seq[1] = ~base_seq[1] & read_valid_bit[1];
-  base_seq[2] = ~base_seq[2] & read_valid_bit[2];
-  base_seq[3] = ~base_seq[3] & read_valid_bit[3];
+inline void swap(read_t::reference x, read_t::reference y) noexcept {
+  bool t = x;
+  x      = y;
+  y      = t;
+}
+
+inline void reverse_read(read_t& r) {
+  for (size_t i = 0; i < (BITSET_SZ >> 1); i += 2) {
+    swap(r[i], r[BITSET_SZ - 2 - i]);
+    swap(r[i + 1], r[BITSET_SZ - i]);
+  }
+}
+
+uint32_t get_hash(const read_t& r, uint32_t modulo) {
+  int      res = BITSET_SZ;
+  uint64_t rem = 0;
+  while (res > 0) {
+    int rsz;
+    if (res >= 32) {
+      rsz = 32;
+      res -= 32;
+    } else {
+      rsz = res;
+      res = 0;
+    }
+    read_t t = r >> res;
+    t &= 0xffffffff;
+    uint32_t x = t.to_ulong();
+    rem        = (rem << rsz) | x;
+    rem %= modulo;
+  }
+  return rem;
 }
 
 void chl() {
-  for (int i = 0; i < read_counter; ++i) { }
+  for (uint32_t id = 0; id < read_counter; ++id) {
+    uint32_t hval = get_hash(read_v[id], hash_table_sz);
+
+    list_chl_key_t ls;
+    ls.push_back((chl_key_t){.id = id, .pos = 0});
+    hash_table[hval].push_back(ls);
+  }
 }
 
 signed main(int argc, char* argv[]) {
