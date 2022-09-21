@@ -223,7 +223,10 @@ uint32_t get_hash(const read_t& r, uint32_t modulo) {
 
 void chl() {
   for (uint32_t id = 0; id < read_counter; ++id) {
-    uint32_t hval = get_hash(read_v[id], hash_table_sz);
+    uint32_t hval     = get_hash(read_v[id], hash_table_sz);
+    read_t   rev_read = read_v[id];
+    reverse_read(rev_read);
+    uint32_t rhval = get_hash(rev_read, hash_table_sz);
 
     list_chl_key_t ls;
     ls.push_back((chl_key_t){.id = id, .pos = 0});
