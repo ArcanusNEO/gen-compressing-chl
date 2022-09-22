@@ -240,7 +240,22 @@ fast_pow(T __base, unsigned long long __exponent, U __modulo) {
 }
 
 bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
-  return true;
+  const auto& read_ref = read_v[chl_ref.id];
+  const auto& read_new = read_v[chl_new.id];
+  if (chl_new.pos < 2 * READ_LENGTH) {
+    for (uint32_t i = 0, j = chl_new.pos % READ_LENGTH; i < READ_LENGTH;
+         ++i, j            = (j + 1) % READ_LENGTH)
+      if (read_ref[i << 1 | 1] != read_new[j << 1 | 1]
+          || read_ref[i << 1] != read_new[j << 1])
+        return true;
+  } else {
+    for (uint32_t i = 0, j = chl_new.pos % READ_LENGTH; i < READ_LENGTH;
+         ++i, j            = (READ_LENGTH - 1 + j) % READ_LENGTH)
+      if (read_ref[i << 1 | 1] != read_new[j << 1 | 1]
+          || read_ref[i << 1] != read_new[j << 1])
+        return true;
+  }
+  return false;
 }
 
 // return 1 for fail
@@ -250,7 +265,7 @@ int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
   const static uint32_t p_r = fast_pow(4ULL, hash_table_sz - 2, hash_table_sz);
   const read_t&         r   = read_v[id];
   for (uint32_t i = 0; i < READ_LENGTH; ++i) {
-    uint32_t cur = (uint32_t) r[i + 1] << 1 | (uint32_t) r[i];
+    uint32_t cur = (uint32_t) r[i << 1 | 1] << 1 | (uint32_t) r[i << 1];
     hval         = (hval + (uint64_t) cur * p) % hash_table_sz;
     hval         = ((uint64_t) hval * p_r) % hash_table_sz;
     if (!hash_table[hval].empty()) {
@@ -273,23 +288,23 @@ void chl() {
     read_t   read_seq = read_v[id];
     uint32_t hval     = get_hash(read_seq, hash_table_sz);
     // 0 源序列循环状态
-    if (!rolling_hash_try_insert(id, hval, 0)) continue;
+    if (rolling_hash_try_insert(id, hval, 0) == 0) continue;
 
     read_seq.flip();
     uint32_t fhval = get_hash(read_seq, hash_table_sz);
     // 1 补序列循环状态
-    if (!rolling_hash_try_insert(id, fhval, 1)) continue;
+    if (rolling_hash_try_insert(id, fhval, 1) == 0) continue;
     read_seq.flip();
 
     reverse_read(read_seq);
     uint32_t rhval = get_hash(read_seq, hash_table_sz);
     // 2 逆序列循环状态
-    if (!rolling_hash_try_insert(id, rhval, 2)) continue;
+    if (rolling_hash_try_insert(id, rhval, 2) == 0) continue;
 
     read_seq.flip();
     uint32_t rfhval = get_hash(read_seq, hash_table_sz);
     // 3 逆补序列循环状态
-    if (!rolling_hash_try_insert(id, rfhval, 3)) continue;
+    if (rolling_hash_try_insert(id, rfhval, 3) == 0) continue;
 
     list_chl_key_t ls;
     ls.push_back((chl_key_t){.id = id, .pos = 0});
