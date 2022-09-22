@@ -26,6 +26,38 @@ enum cmd_opt_t {
   CMD_OPTION_LOG_LEVEL_SILENT
 };
 
+namespace fs = std::filesystem;
+
+uint8_t    base_ai_map[256];
+const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
+
+#ifndef MX_READ_LIST_SZ
+#  define MX_READ_LIST_SZ 0x10000000
+#endif
+
+#ifndef READ_LENGTH
+#  define READ_LENGTH 150
+#  define BITSET_SZ   (READ_LENGTH * 2)
+#endif
+
+using read_t = bitset<BITSET_SZ>;
+read_t   read_v[MX_READ_LIST_SZ];
+uint32_t read_counter;
+
+struct chl_key_t {
+  uint32_t id;
+  uint16_t pos;
+};
+using list_chl_key_t = list<chl_key_t>;
+
+#ifndef MX_HASH_TABLE_SZ
+#  define MX_HASH_TABLE_SZ 0x20000000
+#endif
+
+list<list_chl_key_t> hash_table[MX_HASH_TABLE_SZ];
+
+uint32_t hash_table_sz;
+
 void parse_opt(char* opt_token) {
   if (opt_token == nullptr) return;
   static enum cmd_opt_t opt_type = CMD_OPTION_NULL;
@@ -79,38 +111,6 @@ void parse_opt(char* opt_token) {
     default: break;
   }
 }
-
-namespace fs = std::filesystem;
-
-uint8_t    base_ai_map[256];
-const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
-
-#ifndef MX_READ_LIST_SZ
-#  define MX_READ_LIST_SZ 0x10000000
-#endif
-
-#ifndef READ_LENGTH
-#  define READ_LENGTH 150
-#  define BITSET_SZ   (READ_LENGTH * 2)
-#endif
-
-using read_t = bitset<BITSET_SZ>;
-read_t   read_v[MX_READ_LIST_SZ];
-uint32_t read_counter;
-
-struct chl_key_t {
-  uint32_t id;
-  uint16_t pos;
-};
-using list_chl_key_t = list<chl_key_t>;
-
-#ifndef MX_HASH_TABLE_SZ
-#  define MX_HASH_TABLE_SZ 0x20000000
-#endif
-
-list<list_chl_key_t> hash_table[MX_HASH_TABLE_SZ];
-
-uint32_t hash_table_sz;
 
 void init_hash() {
   uint32_t min_hash_tab_sz = 1.5 * read_counter;
@@ -221,28 +221,75 @@ uint32_t get_hash(const read_t& r, uint32_t modulo) {
   return rem;
 }
 
+template <typename T, typename U>
+typename std::enable_if_t<
+  std::is_integral_v<T> && std::is_integral_v<U> && sizeof(T) >= sizeof(U), T>
+fast_pow(T __base, unsigned long long __exponent, U __modulo) {
+  T ans = 1;
+  __base %= __modulo;
+  while (__exponent) {
+    if (__exponent & 1) {
+      ans *= __base;
+      ans %= __modulo;
+    }
+    __base *= __base;
+    __base %= __modulo;
+    __exponent >>= 1;
+  }
+  return ans;
+}
+
+bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
+  return true;
+}
+
+// return 1 for fail
+// return 0 for success
+int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
+  const static uint32_t p   = fast_pow(4ULL, READ_LENGTH, hash_table_sz);
+  const static uint32_t p_r = fast_pow(4ULL, hash_table_sz - 2, hash_table_sz);
+  const read_t&         r   = read_v[id];
+  for (uint32_t i = 0; i < READ_LENGTH; ++i) {
+    uint32_t cur = (uint32_t) r[i + 1] << 1 | (uint32_t) r[i];
+    hval         = (hval + (uint64_t) cur * p) % hash_table_sz;
+    hval         = ((uint64_t) hval * p_r) % hash_table_sz;
+    if (!hash_table[hval].empty()) {
+      chl_key_t new_key = {.id  = id,
+                           .pos = state * READ_LENGTH + (i + 1) % READ_LENGTH};
+      for (auto& ls : hash_table[hval]) {
+        const auto& chl_ref = ls.front();
+        if (!hash_collision(chl_ref, new_key)) {
+          ls.push_back(new_key);
+          return 0;
+        }
+      }
+    }
+  }
+  return 1;
+}
+
 void chl() {
   for (uint32_t id = 0; id < read_counter; ++id) {
     read_t   read_seq = read_v[id];
     uint32_t hval     = get_hash(read_seq, hash_table_sz);
-    // TODO
-    // 1 源序列循环状态
+    // 0 源序列循环状态
+    if (!rolling_hash_try_insert(id, hval, 0)) continue;
 
     read_seq.flip();
     uint32_t fhval = get_hash(read_seq, hash_table_sz);
-    // TODO
-    // 2 逆序列循环状态
+    // 1 补序列循环状态
+    if (!rolling_hash_try_insert(id, fhval, 1)) continue;
     read_seq.flip();
 
     reverse_read(read_seq);
     uint32_t rhval = get_hash(read_seq, hash_table_sz);
-    // TODO
-    // 3 补序列循环状态
+    // 2 逆序列循环状态
+    if (!rolling_hash_try_insert(id, rhval, 2)) continue;
 
     read_seq.flip();
     uint32_t rfhval = get_hash(read_seq, hash_table_sz);
-    // TODO
-    // 4 补序列的逆向循环状态
+    // 3 逆补序列循环状态
+    if (!rolling_hash_try_insert(id, rfhval, 3)) continue;
 
     list_chl_key_t ls;
     ls.push_back((chl_key_t){.id = id, .pos = 0});
