@@ -9,8 +9,8 @@ const char opt_head = '/';
 const char opt_head = '-';
 #endif
 
-// -o -p -t -vvv -s
-string   input_file = "-", output_path = "out", prime_path = "prime";
+// -o -t -vvv -s
+string   input_file = "-", output_path = "out";
 unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
 enum log_level_t { LOG_SILENT, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG };
@@ -20,7 +20,6 @@ enum cmd_opt_t {
   CMD_OPTION_NULL,
   CMD_OPTION_INPUT_PATH,
   CMD_OPTION_OUTPUT_PATH,
-  CMD_OPTION_PRIME_PATH,
   CMD_OPTION_THREAD_NUMBER,
   CMD_OPTION_LOG_LEVEL,
   CMD_OPTION_LOG_LEVEL_SILENT
@@ -50,13 +49,11 @@ struct chl_key_t {
 };
 using list_chl_key_t = list<chl_key_t>;
 
-#ifndef MX_HASH_TABLE_SZ
-#  define MX_HASH_TABLE_SZ 0x20000000
+#ifndef HASH_TABLE_SZ
+#  define HASH_TABLE_SZ 314606869
 #endif
 
-list<list_chl_key_t> hash_table[MX_HASH_TABLE_SZ];
-
-uint32_t hash_table_sz;
+list<list_chl_key_t> hash_table[HASH_TABLE_SZ];
 
 void parse_opt(char* opt_token) {
   if (opt_token == nullptr) return;
@@ -68,10 +65,6 @@ void parse_opt(char* opt_token) {
         break;
       case 't':
         opt_type = CMD_OPTION_THREAD_NUMBER;
-        opt_token += 2;
-        break;
-      case 'p':
-        opt_type = CMD_OPTION_PRIME_PATH;
         opt_token += 2;
         break;
       case 'v':
@@ -96,10 +89,6 @@ void parse_opt(char* opt_token) {
       output_path = opt_token;
       opt_type    = CMD_OPTION_NULL;
       break;
-    case CMD_OPTION_PRIME_PATH:
-      prime_path = opt_token;
-      opt_type   = CMD_OPTION_NULL;
-      break;
     case CMD_OPTION_THREAD_NUMBER: {
       auto i        = atoi(opt_token);
       thread_number = i > 0 ? i : thread_number;
@@ -110,49 +99,6 @@ void parse_opt(char* opt_token) {
     case CMD_OPTION_LOG_LEVEL_SILENT: opt_type = CMD_OPTION_NULL; break;
     default: break;
   }
-}
-
-void init_hash() {
-  uint32_t min_hash_tab_sz = 1.5 * read_counter;
-  fs::path p_file(prime_path);
-  switch (min_hash_tab_sz) {
-    case 2 ... 15485863: p_file /= "2_15485863.txt"; break;
-    case 15485864 ... 32452843: p_file /= "15485867_32452843.txt"; break;
-    case 32452844 ... 49979687: p_file /= "32452867_49979687.txt"; break;
-    case 49979688 ... 67867967: p_file /= "49979693_67867967.txt"; break;
-    case 67867968 ... 86028121: p_file /= "67867979_86028121.txt"; break;
-    case 86028122 ... 104395301: p_file /= "86028157_104395301.txt"; break;
-    case 104395302 ... 122949823: p_file /= "104395303_122949823.txt"; break;
-    case 122949824 ... 141650939: p_file /= "122949829_141650939.txt"; break;
-    case 141650963 ... 160481183: p_file /= "141650963_160481183.txt"; break;
-    case 160481184 ... 179424673: p_file /= "160481219_179424673.txt"; break;
-    case 179424674 ... 198491317: p_file /= "179424691_198491317.txt"; break;
-    case 198491318 ... 217645177: p_file /= "198491329_217645177.txt"; break;
-    case 217645178 ... 236887691: p_file /= "217645199_236887691.txt"; break;
-    case 236887692 ... 256203161: p_file /= "236887699_256203161.txt"; break;
-    case 256203162 ... 275604541: p_file /= "256203221_275604541.txt"; break;
-    case 275604542 ... 295075147: p_file /= "275604547_295075147.txt"; break;
-    case 295075148 ... 314606869: p_file /= "295075153_314606869.txt"; break;
-    default:
-      hash_table_sz = 314606869;
-      if (log_level >= LOG_WARNING)
-        cerr << "[warning] max prime number (" << hash_table_sz << ") reached"
-             << endl;
-      return;
-  }
-  if (log_level >= LOG_INFO)
-    cerr << "[info] select prime number file " << fs::path(p_file) << endl;
-  ifstream   ifs(p_file);
-  streambuf* cin_buf = cin.rdbuf(ifs.rdbuf());
-  string     prime_str;
-  while (getline(cin, prime_str, ',')) {
-    hash_table_sz = stoul(prime_str);
-    if (hash_table_sz >= min_hash_tab_sz) break;
-  }
-  cin.rdbuf(cin_buf);
-  if (log_level >= LOG_INFO)
-    cerr << "[info] select prime number " << hash_table_sz
-         << " for hash table size" << endl;
 }
 
 void read_sequence() {
@@ -188,9 +134,8 @@ inline void cycle_shift_right(read_t& r) {
 }
 
 inline void swap(read_t::reference x, read_t::reference y) noexcept {
-  bool t = x;
-  x      = y;
-  y      = t;
+  bool t;
+  t = x, x = y, y = t;
 }
 
 inline void reverse_read(read_t& r) {
@@ -261,13 +206,13 @@ bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
 // return 1 for fail
 // return 0 for success
 int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
-  const static uint32_t p   = fast_pow(4ULL, READ_LENGTH, hash_table_sz);
-  const static uint32_t p_r = fast_pow(4ULL, hash_table_sz - 2, hash_table_sz);
+  const static uint32_t p   = fast_pow(4ULL, READ_LENGTH, HASH_TABLE_SZ);
+  const static uint32_t p_r = fast_pow(4ULL, HASH_TABLE_SZ - 2, HASH_TABLE_SZ);
   const read_t&         r   = read_v[id];
   for (uint32_t i = 0; i < READ_LENGTH; ++i) {
     uint32_t cur = (uint32_t) r[i << 1 | 1] << 1 | (uint32_t) r[i << 1];
-    hval         = (hval + (uint64_t) cur * p) % hash_table_sz;
-    hval         = ((uint64_t) hval * p_r) % hash_table_sz;
+    hval         = (hval + (uint64_t) cur * p) % HASH_TABLE_SZ;
+    hval         = ((uint64_t) hval * p_r) % HASH_TABLE_SZ;
     if (!hash_table[hval].empty()) {
       chl_key_t new_key = {.id  = id,
                            .pos = state * READ_LENGTH + (i + 1) % READ_LENGTH};
@@ -286,23 +231,23 @@ int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
 void chl() {
   for (uint32_t id = 0; id < read_counter; ++id) {
     read_t   read_seq = read_v[id];
-    uint32_t hval     = get_hash(read_seq, hash_table_sz);
+    uint32_t hval     = get_hash(read_seq, HASH_TABLE_SZ);
     // 0 源序列循环状态
     if (rolling_hash_try_insert(id, hval, 0) == 0) continue;
 
     read_seq.flip();
-    uint32_t fhval = get_hash(read_seq, hash_table_sz);
+    uint32_t fhval = get_hash(read_seq, HASH_TABLE_SZ);
     // 1 补序列循环状态
     if (rolling_hash_try_insert(id, fhval, 1) == 0) continue;
     read_seq.flip();
 
     reverse_read(read_seq);
-    uint32_t rhval = get_hash(read_seq, hash_table_sz);
+    uint32_t rhval = get_hash(read_seq, HASH_TABLE_SZ);
     // 2 逆序列循环状态
     if (rolling_hash_try_insert(id, rhval, 2) == 0) continue;
 
     read_seq.flip();
-    uint32_t rfhval = get_hash(read_seq, hash_table_sz);
+    uint32_t rfhval = get_hash(read_seq, HASH_TABLE_SZ);
     // 3 逆补序列循环状态
     if (rolling_hash_try_insert(id, rfhval, 3) == 0) continue;
 
@@ -319,7 +264,6 @@ signed main(int argc, char* argv[]) {
     cerr << "[info] begin CHL..." << endl
          << "[info] input_file " << fs::path(input_file) << endl
          << "[info] output_path " << fs::path(output_path) << endl
-         << "[info] prime_path " << fs::path(prime_path) << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;
   fs::remove(output_path);
@@ -332,6 +276,5 @@ signed main(int argc, char* argv[]) {
   }
   read_sequence();
   if (cin_buf) cin.rdbuf(cin_buf);
-  init_hash();
   chl();
 }
