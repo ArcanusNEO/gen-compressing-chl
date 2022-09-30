@@ -185,6 +185,8 @@ fast_pow(T __base, unsigned long long __exponent, U __modulo) {
   return ans;
 }
 
+// return false for noncollision
+// return true for collision
 bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
   const auto& read_ref = read_v[chl_ref.id];
   const auto& read_new = read_v[chl_new.id];
@@ -290,14 +292,14 @@ signed main(int argc, char* argv[]) {
     read_sequence();
     if (orig_counter + cnt != read_counter && log_level >= LOG_WARNING)
       cerr << "[warning] reads (" << read_path << ") count mismatch ("
-           << "expect " << cnt << " line " << read_counter - orig_counter << ")"
-           << endl;
+           << "expected lines " << cnt << " practical lines "
+           << read_counter - orig_counter << ")" << endl;
     if (cin_buf_bak) cin.rdbuf(cin_buf_bak);
   }
   if (cin_buf) cin.rdbuf(cin_buf);
   if (exp_read_counter != read_counter && log_level >= LOG_WARNING)
     cerr << "[warning] reads total count mismatch ("
-         << "expect " << exp_read_counter << " line " << read_counter << ")"
-         << endl;
+         << "expected total lines " << exp_read_counter
+         << " practical total lines " << read_counter << ")" << endl;
   chl();
 }
