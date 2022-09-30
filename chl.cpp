@@ -261,6 +261,9 @@ void chl() {
   }
 }
 
+void dump_bin() {
+}
+
 signed main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) parse_opt(argv[i]);
   thread_number = max(thread_number, 1U);
@@ -303,4 +306,5 @@ signed main(int argc, char* argv[]) {
          << "expected total lines " << exp_read_counter
          << " practical total lines " << read_counter << ")" << endl;
   chl();
+  dump_bin();
 }
