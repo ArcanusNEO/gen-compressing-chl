@@ -42,6 +42,7 @@ const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
 using read_t = bitset<BITSET_SZ>;
 read_t   read_v[MX_READ_LIST_SZ];
 uint32_t read_counter;
+uint32_t exp_read_counter;
 
 struct chl_key_t {
   uint32_t id;
@@ -264,6 +265,7 @@ signed main(int argc, char* argv[]) {
     cerr << "[info] begin CHL..." << endl
          << "[info] input_file " << fs::path(input_file) << endl
          << "[info] output_path " << fs::path(output_path) << endl
+         << "[info] hash table size " << HASH_TABLE_SZ << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;
   fs::remove(output_path);
@@ -274,7 +276,28 @@ signed main(int argc, char* argv[]) {
     ifs.open(input_file);
     cin_buf = cin.rdbuf(ifs.rdbuf());
   }
-  read_sequence();
+  uint32_t cnt;
+  string   read_path;
+  cin >> exp_read_counter;
+  while (cin >> read_path >> cnt) {
+    ifstream   read_ifs;
+    streambuf* cin_buf_bak = nullptr;
+    if (read_path != "-") {
+      read_ifs.open(read_path);
+      cin_buf_bak = cin.rdbuf(read_ifs.rdbuf());
+    }
+    auto orig_counter = read_counter;
+    read_sequence();
+    if (orig_counter + cnt != read_counter && log_level >= LOG_WARNING)
+      cerr << "[warning] reads (" << read_path << ") count mismatch ("
+           << "expect " << cnt << " line " << read_counter - orig_counter << ")"
+           << endl;
+    if (cin_buf_bak) cin.rdbuf(cin_buf_bak);
+  }
   if (cin_buf) cin.rdbuf(cin_buf);
+  if (exp_read_counter != read_counter && log_level >= LOG_WARNING)
+    cerr << "[warning] reads total count mismatch ("
+         << "expect " << exp_read_counter << " line " << read_counter << ")"
+         << endl;
   chl();
 }
