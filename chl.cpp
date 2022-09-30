@@ -71,7 +71,8 @@ void parse_opt(char* opt_token) {
       case 'v':
         opt_type  = CMD_OPTION_LOG_LEVEL;
         log_level = 1;
-        for (opt_token += 2; *opt_token == 'v'; ++opt_token) ++log_level;
+        for (opt_token += 2; *opt_token == 'v'; ++opt_token)
+          log_level = min(log_level + 1, (unsigned) LOG_DEBUG);
         break;
       case 's':
         opt_type = CMD_OPTION_LOG_LEVEL_SILENT;
