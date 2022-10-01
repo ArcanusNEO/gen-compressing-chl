@@ -316,6 +316,14 @@ void dump_bin() {
     }
 }
 
+void dump_meta() {
+  auto meta_file = fs::path(output_path) / "chl.meta";
+  if (fs::exists(meta_file) && log_level >= LOG_WARNING)
+    cerr << "[warning] meta file " << meta_file
+         << " already exists, overwriting..." << endl;
+  ofstream meta(meta_file, ios::out | ios::trunc);
+}
+
 signed main(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) parse_opt(argv[i]);
   thread_number = max(thread_number, 1U);
@@ -337,7 +345,8 @@ signed main(int argc, char* argv[]) {
   uint32_t cnt;
   string   read_path;
   cin >> exp_read_counter;
-  while (cin >> read_path >> cnt) {
+  while (getline(cin, read_path)) {
+    cin >> cnt;
     ifstream   read_ifs;
     streambuf* cin_buf_bak = nullptr;
     if (read_path != "-") {
@@ -359,4 +368,5 @@ signed main(int argc, char* argv[]) {
          << " practical total lines " << read_counter << ")" << endl;
   chl();
   dump_bin();
+  dump_meta();
 }
