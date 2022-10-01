@@ -261,7 +261,59 @@ void chl() {
   }
 }
 
+const struct bendl_t {
+} bendl;
+
+ofstream& operator<<(ofstream& ofs, const bendl_t& be) {
+  const uint16_t bendl_ch = 0xffff;
+  ofs.write((char*) &bendl_ch, 2 * sizeof(char));
+  return ofs;
+}
+
+ofstream& operator<<(ofstream& ofs, const read_t& r) {
+  string             str = r.to_string();
+  int                rem = str.size() % 8;
+  static const char* v[] = {"",     "0000000", "000000", "00000",
+                            "0000", "000",     "00",     "0"};
+  str += v[rem];
+  for (size_t i = 0; i < str.size(); i += 8) {
+    char j = ((str[i] - '0') << 7) | ((str[i + 1] - '0') << 6)
+             | ((str[i + 2] - '0') << 5) | ((str[i + 3] - '0') << 4)
+             | ((str[i + 4] - '0') << 3) | ((str[i + 5] - '0') << 2)
+             | ((str[i + 6] - '0') << 1) | ((str[i + 7] - '0'));
+    ofs.write(&j, sizeof(char));
+  }
+  return ofs;
+}
+
+ofstream& operator<<(ofstream& ofs, const chl_key_t& st) {
+  ofs.write((const char*) &st.pos, 2 * sizeof(char));
+  ofs.write((const char*) &st.id, 4 * sizeof(char));
+  return ofs;
+}
+
 void dump_bin() {
+  auto ido_file = fs::path(output_path) / "ido.bin";
+  auto idp_file = fs::path(output_path) / "idp.bin";
+  if (fs::exists(ido_file) && log_level >= LOG_WARNING)
+    cerr << "[warning] ido file " << ido_file
+         << " already exists, overwriting..." << endl;
+  if (fs::exists(idp_file) && log_level >= LOG_WARNING)
+    cerr << "[warning] idp file " << idp_file
+         << " already exists, overwriting..." << endl;
+  ofstream ido(ido_file, ios::binary | ios::out | ios::trunc);
+  ofstream idp(idp_file, ios::binary | ios::out | ios::trunc);
+  for (uint32_t i = 0; i < read_counter; ++i)
+    for (const auto& ls : hash_table[i]) {
+      const auto& f_st = ls.front();
+      const auto& r    = read_v[f_st.id];
+      if (ls.size() <= 1) ido << r << f_st << bendl;
+      else {
+        idp << r;
+        for (const auto& st : ls) idp << st;
+        idp << bendl;
+      }
+    }
 }
 
 signed main(int argc, char* argv[]) {
