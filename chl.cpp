@@ -9,7 +9,7 @@ const char opt_head = '/';
 const char opt_head = '-';
 #endif
 
-// -o -t -vvv -s
+// -o -t -vvvv -s
 string   input_file = "-", output_path = "output";
 unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
@@ -288,10 +288,12 @@ ofstream& operator<<(ofstream& ofs, const read_t& r) {
 
 ofstream& operator<<(ofstream& ofs, const chl_key_t& st) {
   static uint32_t last_id;
-  if (st.pos == 0) last_id = 0;
-  uint32_t diff_id = st.id - last_id;
-  ofs.write((const char*) &st.pos, 2 * sizeof(char));
-  ofs.write((const char*) &diff_id, 4 * sizeof(char));
+  if (st.pos == 0) ofs.write((const char*) &st.id, 4 * sizeof(char));
+  else {
+    uint32_t diff_id = st.id - last_id;
+    ofs.write((const char*) &st.pos, 2 * sizeof(char));
+    ofs.write((const char*) &diff_id, 4 * sizeof(char));
+  }
   last_id = st.id;
   return ofs;
 }
