@@ -322,6 +322,14 @@ void dump_meta() {
     cerr << "[warning] meta file " << meta_file
          << " already exists, overwriting..." << endl;
   ofstream meta(meta_file, ios::out | ios::trunc);
+#define endl '\n'
+  meta << "ido-file" << endl;
+  meta << "ido.bin" << endl;
+  meta << "idp-file" << endl;
+  meta << "idp.bin" << endl;
+  meta << "read-length" << endl;
+  meta << READ_LENGTH << endl;
+#undef endl
 }
 
 signed main(int argc, char* argv[]) {
