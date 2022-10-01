@@ -10,7 +10,7 @@ const char opt_head = '-';
 #endif
 
 // -o -t -vvv -s
-string   input_file = "-", output_path = "out";
+string   input_file = "-", output_path = "output";
 unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
 enum log_level_t { LOG_SILENT, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG };
