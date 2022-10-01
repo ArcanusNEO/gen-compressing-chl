@@ -18,7 +18,7 @@ unsigned log_level = LOG_SILENT;
 
 enum cmd_opt_t {
   CMD_OPTION_NULL,
-  CMD_OPTION_INPUT_PATH,
+  CMD_OPTION_INPUT_FILE,
   CMD_OPTION_OUTPUT_PATH,
   CMD_OPTION_THREAD_NUMBER,
   CMD_OPTION_LOG_LEVEL,
@@ -81,9 +81,9 @@ void parse_opt(char* opt_token) {
         break;
       default: break;
     }
-  if (opt_type == CMD_OPTION_NULL) opt_type = CMD_OPTION_INPUT_PATH;
+  if (opt_type == CMD_OPTION_NULL) opt_type = CMD_OPTION_INPUT_FILE;
   switch (opt_type) {
-    case CMD_OPTION_INPUT_PATH:
+    case CMD_OPTION_INPUT_FILE:
       input_file = opt_token;
       opt_type   = CMD_OPTION_NULL;
       break;
@@ -265,7 +265,7 @@ const struct bendl_t {
 } bendl;
 
 ofstream& operator<<(ofstream& ofs, const bendl_t& be) {
-  const uint16_t bendl_ch = 0xffff;
+  const uint16_t bendl_ch = 0;
   ofs.write((char*) &bendl_ch, 2 * sizeof(char));
   return ofs;
 }
@@ -323,6 +323,8 @@ void dump_bin() {
 }
 
 void dump_meta() {
+  auto ido_file  = fs::path(output_path) / "ido.bin";
+  auto idp_file  = fs::path(output_path) / "idp.bin";
   auto meta_file = fs::path(output_path) / "chl.meta";
   if (fs::exists(meta_file) && log_level >= LOG_WARNING)
     cerr << "[warning] meta file " << meta_file
@@ -331,9 +333,9 @@ void dump_meta() {
   auto     cout_buf = cout.rdbuf(meta.rdbuf());
 #define endl '\n'
   cout << "ido-file" << endl;
-  cout << "ido.bin" << endl;
+  cout << ido_file.string() << endl;
   cout << "idp-file" << endl;
-  cout << "idp.bin" << endl;
+  cout << idp_file.string() << endl;
   cout << "read-length" << endl;
   cout << READ_LENGTH << endl;
 #undef endl
