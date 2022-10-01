@@ -124,4 +124,6 @@ signed main(int argc, char* argv[]) {
     } else if (tag.find("read") != string::npos) cin >> exp_read_len;
   }
   if (cin_buf) cin.rdbuf(cin_buf);
+  ifs.close();
+  ifs.open(ido_file);
 }
