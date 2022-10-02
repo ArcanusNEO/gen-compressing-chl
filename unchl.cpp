@@ -191,7 +191,7 @@ signed main(int argc, char* argv[]) {
     ifs.read((char*) &id, 4);
     read_counter = max(read_counter, id);
     iter_assign(read_v[id], buf);
-    auto&    read_ref = read_v[id];
+    auto     read_ref = read_v[id];
     uint16_t pos;
     while (ifs.read((char*) &pos, 2) && ~pos) {
       ifs.read((char*) &id, 4);
