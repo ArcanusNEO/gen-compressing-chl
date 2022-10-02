@@ -108,4 +108,4 @@ ui_*.h
 *.x86_64
 
 /chl-old.cpp
-/test.cpp
+/test.*

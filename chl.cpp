@@ -265,7 +265,7 @@ const struct bendl_t {
 } bendl;
 
 ofstream& operator<<(ofstream& ofs, const bendl_t& be) {
-  const uint16_t bendl_ch = 0;
+  const uint16_t bendl_ch = 0xffff;
   ofs.write((char*) &bendl_ch, 2 * sizeof(char));
   return ofs;
 }

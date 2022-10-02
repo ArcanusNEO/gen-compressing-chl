@@ -75,6 +75,7 @@ void parse_opt(char* opt_token) {
 
 uint8_t    base_ai_map[256];
 const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
+string     base4_is_map[256];
 
 #ifndef MX_READ_LIST_SZ
 #  define MX_READ_LIST_SZ 0x10000000
@@ -82,6 +83,8 @@ const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
 
 uint64_t read_v[MX_READ_LIST_SZ][8];
 uint32_t read_counter;
+uint32_t read_length;
+uint32_t read_bin_length;
 
 void init() {
   ios::sync_with_stdio(false);
@@ -90,6 +93,56 @@ void init() {
   base_ai_map['t'] = base_ai_map['T'] = 0x03;
   base_ai_map['c'] = base_ai_map['C'] = 0x01;
   base_ai_map['g'] = base_ai_map['G'] = 0x02;
+  for (uint32_t i = 0; i < 4; ++i)
+    for (uint32_t j = 0; j < 4; ++j)
+      for (uint32_t k = 0; k < 4; ++k)
+        for (uint32_t l = 0; l < 4; ++l) {
+          uint32_t index = i << 6 | j << 4 | k << 2 | l;
+          base4_is_map[index].resize(4);
+          base4_is_map[index][0] = base_ia_map[i];
+          base4_is_map[index][1] = base_ia_map[j];
+          base4_is_map[index][2] = base_ia_map[k];
+          base4_is_map[index][3] = base_ia_map[l];
+        }
+}
+
+void iter_assign(uint64_t i[8], uint64_t j[8]) noexcept {
+  i[0] = j[0];
+  i[1] = j[1];
+  i[2] = j[2];
+  i[3] = j[3];
+  i[4] = j[4];
+  i[5] = j[5];
+  i[6] = j[6];
+  i[7] = j[7];
+}
+
+void iter_swap(uint64_t i[8], uint64_t j[8]) noexcept {
+  swap(i[0], j[0]);
+  swap(i[1], j[1]);
+  swap(i[2], j[2]);
+  swap(i[3], j[3]);
+  swap(i[4], j[4]);
+  swap(i[5], j[5]);
+  swap(i[6], j[6]);
+  swap(i[7], j[7]);
+}
+
+string translate(uint64_t raw_read[8]) {
+  string ret;
+  ret.reserve(read_length);
+  for (uint8_t* i = (uint8_t*) raw_read;
+       i + 1 < (uint8_t*) raw_read + read_bin_length; ++i)
+    ret += base4_is_map[*i];
+  uint8_t* prem_base4 = (uint8_t*) raw_read + read_bin_length - 1;
+  uint8_t  rem_base4  = *prem_base4;
+  int      rem        = read_length % 4;
+  for (int i = 0; i < rem; ++i)
+    ret.push_back(base_ia_map[rem_base4 >> (6 - i * 2)]);
+  return ret;
+}
+
+void transform_read(uint64_t raw_read[8], uint16_t pos, uint64_t read_ref[8]) {
 }
 
 signed main(int argc, char* argv[]) {
@@ -110,7 +163,6 @@ signed main(int argc, char* argv[]) {
   }
   list<fs::path> idp_file_ls;
   fs::path       ido_file;
-  uint32_t       exp_read_len;
   string         tag;
   while (getline(cin, tag)) {
     if (tag.find("ido") != string::npos) {
@@ -121,9 +173,42 @@ signed main(int argc, char* argv[]) {
       string f;
       getline(cin, f);
       idp_file_ls.push_back(f);
-    } else if (tag.find("read") != string::npos) cin >> exp_read_len;
+    } else if (tag.find("read") != string::npos) cin >> read_length;
   }
   if (cin_buf) cin.rdbuf(cin_buf);
   ifs.close();
   ifs.open(ido_file);
+  read_bin_length = (read_length + 3) / 4;  // Byte
+  uint64_t buf[8];
+  while (ifs.read((char*) buf, read_bin_length)) {
+    uint32_t id;
+    ifs.read((char*) &id, 4);
+    read_counter = max(read_counter, id);
+    iter_assign(read_v[id], buf);
+  }
+  while (ifs.read((char*) buf, read_bin_length)) {
+    uint32_t id;
+    ifs.read((char*) &id, 4);
+    read_counter = max(read_counter, id);
+    iter_assign(read_v[id], buf);
+    auto&    read_ref = read_v[id];
+    uint16_t pos;
+    while (ifs.read((char*) &pos, 2) && ~pos) {
+      ifs.read((char*) &id, 4);
+      read_counter = max(read_counter, id);
+      transform_read(buf, pos, read_ref);
+      iter_assign(read_v[id], buf);
+    }
+  }
+  ifstream   ofs;
+  streambuf* cout_buf = nullptr;
+  if (output_file != "-") {
+    ofs.open(output_file);
+    cout_buf = cout.rdbuf(ofs.rdbuf());
+  }
+#define endl '\n'
+  for (uint32_t i = 0; i < read_counter; ++i)
+    cout << translate(read_v[i]) << endl;
+#undef endl
+  if (cout_buf) cout.rdbuf(cout_buf);
 }
