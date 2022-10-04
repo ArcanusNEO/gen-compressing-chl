@@ -142,7 +142,7 @@ string translate(uint64_t raw_read[8]) {
   return ret;
 }
 
-void transform_read(uint64_t raw_read[8], uint16_t pos, uint64_t read_ref[8]) {
+void transform_read(uint64_t new_read[8], uint16_t pos, uint64_t read_ref[8]) {
 }
 
 signed main(int argc, char* argv[]) {
