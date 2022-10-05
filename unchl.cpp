@@ -186,21 +186,24 @@ signed main(int argc, char* argv[]) {
     read_counter = max(read_counter, id);
     iter_assign(read_v[id], buf);
   }
-  while (ifs.read((char*) buf, read_bin_length)) {
-    uint32_t id;
-    ifs.read((char*) &id, 4);
-    read_counter = max(read_counter, id);
-    iter_assign(read_v[id], buf);
-    auto     read_ref = read_v[id];
-    uint16_t pos;
-    while (ifs.read((char*) &pos, 2) && ~pos) {
+  for (const auto& idp_file : idp_file_ls) {
+    ifs.open(idp_file);
+    while (ifs.read((char*) buf, read_bin_length)) {
+      uint32_t id;
       ifs.read((char*) &id, 4);
       read_counter = max(read_counter, id);
-      transform_read(buf, pos, read_ref);
       iter_assign(read_v[id], buf);
+      auto     read_ref = read_v[id];
+      uint16_t pos;
+      while (ifs.read((char*) &pos, 2) && ~pos) {
+        ifs.read((char*) &id, 4);
+        read_counter = max(read_counter, id);
+        transform_read(buf, pos, read_ref);
+        iter_assign(read_v[id], buf);
+      }
     }
   }
-  ifstream   ofs;
+  ofstream   ofs;
   streambuf* cout_buf = nullptr;
   if (output_file != "-") {
     ofs.open(output_file);
