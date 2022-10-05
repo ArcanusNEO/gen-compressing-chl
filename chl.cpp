@@ -298,6 +298,18 @@ ofstream& operator<<(ofstream& ofs, const chl_key_t& st) {
   return ofs;
 }
 
+struct chl_id_t {
+  uint32_t id;
+};
+
+ofstream& operator<<(ofstream& ofs, const chl_id_t& cid) {
+  static uint32_t last_id = 0xffffffff;
+  uint32_t        diff_id = last_id == 0xffffffff ? cid.id : cid.id - last_id;
+  ofs.write((const char*) &diff_id, 4 * sizeof(char));
+  last_id = cid.id;
+  return ofs;
+}
+
 void dump_bin() {
   auto ido_file = fs::path(output_path) / "ido.bin";
   auto idp_file = fs::path(output_path) / "idp.bin";
@@ -313,7 +325,7 @@ void dump_bin() {
     for (const auto& ls : hash_table[i]) {
       const auto& f_st = ls.front();
       const auto& r    = read_v[f_st.id];
-      if (ls.size() == 1) ido << r << f_st;
+      if (ls.size() == 1) ido << r << (chl_id_t){f_st.id};
       else {
         idp << r;
         for (const auto& st : ls) idp << st;
