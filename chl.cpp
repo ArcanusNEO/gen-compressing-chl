@@ -309,7 +309,7 @@ void dump_bin() {
          << " already exists, overwriting..." << endl;
   ofstream ido(ido_file, ios::binary | ios::out | ios::trunc);
   ofstream idp(idp_file, ios::binary | ios::out | ios::trunc);
-  for (uint32_t i = 0; i < read_counter; ++i)
+  for (uint32_t i = 0; i < HASH_TABLE_SZ; ++i)
     for (const auto& ls : hash_table[i]) {
       const auto& f_st = ls.front();
       const auto& r    = read_v[f_st.id];
@@ -343,6 +343,7 @@ void dump_meta() {
 }
 
 signed main(int argc, char* argv[]) {
+  init();
   for (int i = 1; i < argc; ++i) parse_opt(argv[i]);
   thread_number = max(thread_number, 1U);
   if (log_level >= LOG_INFO)
