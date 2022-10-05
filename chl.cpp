@@ -313,7 +313,7 @@ void dump_bin() {
     for (const auto& ls : hash_table[i]) {
       const auto& f_st = ls.front();
       const auto& r    = read_v[f_st.id];
-      if (ls.size() == 1) ido << r << f_st << bendl;
+      if (ls.size() == 1) ido << r << f_st;
       else {
         idp << r;
         for (const auto& st : ls) idp << st;
