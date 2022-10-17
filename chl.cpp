@@ -223,6 +223,9 @@ int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
       for (auto& ls : hash_table[hval]) {
         const auto& chl_ref = ls.front();
         if (!hash_collision(chl_ref, new_key)) {
+          if (log_level >= LOG_INFO)
+            cerr << "[info] new key id " << new_key.id << " pos " << new_key.pos
+                 << endl;
           ls.push_back(new_key);
           return 0;
         }
