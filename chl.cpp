@@ -25,7 +25,7 @@ enum cmd_opt_t {
   CMD_OPTION_LOG_LEVEL_SILENT
 };
 
-namespace fs = std::filesystem;
+namespace fs = filesystem;
 
 uint8_t    base_ai_map[256];
 const char base_ia_map[4] = {'A', 'C', 'G', 'T'};

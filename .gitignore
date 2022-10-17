@@ -39,7 +39,7 @@ dkms.conf
 *.lai
 *.lib
 *.lo
-Makefile*
+Makefile.*
 *.map
 Mkfile.old
 *.moc
