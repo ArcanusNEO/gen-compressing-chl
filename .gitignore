@@ -109,3 +109,6 @@ ui_*.h
 
 /chl-old.cpp
 /test.*
+output/
+chl
+unchl

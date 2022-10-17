@@ -36,8 +36,8 @@ const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
 
 #ifndef READ_LENGTH
 #  define READ_LENGTH 150
-#  define BITSET_SZ   (READ_LENGTH * 2)
 #endif
+#define BITSET_SZ (READ_LENGTH * 2)
 
 using read_t = bitset<BITSET_SZ>;
 read_t   read_v[MX_READ_LIST_SZ];
@@ -365,7 +365,7 @@ signed main(int argc, char* argv[]) {
          << "[info] hash table size " << HASH_TABLE_SZ << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;
-  fs::remove(output_path);
+  fs::remove_all(output_path);
   fs::create_directory(output_path);
   ifstream   ifs;
   streambuf* cin_buf = nullptr;
