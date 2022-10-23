@@ -2,14 +2,17 @@
 
 #include <bitset>
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <list>
 #include <thread>
-
-#include "filesystem_sim.hpp"
-namespace fs = std::filesystem;
+#ifdef USE_FS_SIM
+#  include "filesystem_sim.hpp"
+namespace fs = filesystem_sim;
+#else
+#  include <filesystem>
+namespace fs        = std::filesystem;
+#endif
 
 using namespace std;
 
@@ -350,8 +353,8 @@ void dump_bin() {
   if (fs::exists(idp_file) && log_level >= LOG_WARNING)
     cerr << "[warning] idp file " << idp_file
          << " already exists, overwriting..." << endl;
-  ofstream ido(ido_file, ios::binary | ios::out | ios::trunc);
-  ofstream idp(idp_file, ios::binary | ios::out | ios::trunc);
+  ofstream ido(ido_file.string(), ios::binary | ios::out | ios::trunc);
+  ofstream idp(idp_file.string(), ios::binary | ios::out | ios::trunc);
   for (uint32_t i = 0; i < HASH_TABLE_SZ; ++i)
     for (const auto& ls : hash_table[i]) {
       const auto& f_st = ls.front();
@@ -372,7 +375,7 @@ void dump_meta() {
   if (fs::exists(meta_file) && log_level >= LOG_WARNING)
     cerr << "[warning] meta file " << meta_file
          << " already exists, overwriting..." << endl;
-  ofstream meta(meta_file, ios::out | ios::trunc);
+  ofstream meta(meta_file.string(), ios::out | ios::trunc);
   auto     cout_buf = cout.rdbuf(meta.rdbuf());
 #define endl '\n'
   cout << "ido-file" << endl;
@@ -391,8 +394,8 @@ signed main(int argc, char* argv[]) {
   thread_number = max(thread_number, 1U);
   if (log_level >= LOG_INFO)
     cerr << "[info] begin CHL..." << endl
-         << "[info] input_file " << fs::path(input_file) << endl
-         << "[info] output_path " << fs::path(output_path) << endl
+         << "[info] input_file " << input_file << endl
+         << "[info] output_path " << output_path << endl
          << "[info] hash table size " << HASH_TABLE_SZ << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;

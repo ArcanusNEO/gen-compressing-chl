@@ -1,13 +1,16 @@
 #include <bitset>
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <list>
 #include <thread>
-
-#include "filesystem_sim.hpp"
-namespace fs = std::filesystem;
+#ifdef USE_FS_SIM
+#  include "filesystem_sim.hpp"
+namespace fs = filesystem_sim;
+#else
+#  include <filesystem>
+namespace fs        = std::filesystem;
+#endif
 using namespace std;
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) \
