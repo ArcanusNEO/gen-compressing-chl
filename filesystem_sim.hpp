@@ -27,8 +27,8 @@ void create_directory(const path& p) {
 int exists(const path& p) {
   return system(("[ ! -f " + p.p_ + " ]").c_str());
 }
-std::ostream operator<<(std::ostream& os, const path& p) {
-  os << '"' << p.p_ << '"';
+std::ostream& operator<<(std::ostream& os, const path& p) {
+  return (os << '"' << p.p_ << '"');
 }
 };      // namespace filesystem_sim
 #endif  // _FILESYSTEM_HPP_
