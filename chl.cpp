@@ -397,9 +397,12 @@ signed main(int argc, char* argv[]) {
   }
   uint32_t cnt;
   string   read_path;
-  cin >> exp_read_counter;
+  string   str;
+  getline(cin, str);
+  exp_read_counter = stoul(str);
   while (getline(cin, read_path)) {
-    cin >> cnt;
+    getline(cin, str);
+    cnt = stoul(str);
     ifstream   read_ifs;
     streambuf* cin_buf_bak = nullptr;
     if (read_path != "-") {
