@@ -1,7 +1,16 @@
-#include <bits/stdc++.h>
 #include <omp.h>
 
-#include "filesystem.hpp"
+#include <bitset>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <thread>
+
+#include "filesystem_sim.hpp"
+namespace fs = std::filesystem;
+
 using namespace std;
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) \
@@ -26,8 +35,6 @@ enum cmd_opt_t {
   CMD_OPTION_LOG_LEVEL,
   CMD_OPTION_LOG_LEVEL_SILENT
 };
-
-namespace fs = filesystem;
 
 uint8_t    base_ai_map[256];
 const char base_ia_map[4] = {'A', 'C', 'G', 'T'};

@@ -1,7 +1,7 @@
 #ifndef _GLIBCXX_CHRONO_H
 #define _GLIBCXX_CHRONO_H 0
 #include <string>
-namespace filesystem {
+namespace filesystem_sim {
 using std::string;
 class path {
 public:
@@ -25,5 +25,5 @@ void create_directory(const path& p) {
 int exists(const path& p) {
   return system(("[ ! -f " + p.p_ + " ]").c_str());
 }
-};      // namespace filesystem
+};      // namespace filesystem_sim
 #endif  // _GLIBCXX_CHRONO_H
