@@ -215,7 +215,8 @@ bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
 
 // return 1 for fail
 // return 0 for success
-int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
+int rolling_hash_try_insert(uint32_t id, const read_t& ref_read, uint32_t hval,
+                            int state) {
   const static uint32_t p   = fast_pow(4ULL, READ_LENGTH, HASH_TABLE_SZ);
   const static uint32_t p_r = fast_pow(4ULL, HASH_TABLE_SZ - 2, HASH_TABLE_SZ);
   {
@@ -223,13 +224,14 @@ int rolling_hash_try_insert(uint32_t id, uint32_t hval, int state) {
     if (is_printed == 0 && log_level >= LOG_DEBUG)
       is_printed = 1, cerr << "[debug] p " << p << " p_r " << p_r << endl;
   }
-  const read_t& r = read_v[id];
+  const read_t& r = ref_read;
   for (uint32_t i = 0; i < READ_LENGTH; ++i) {
     uint32_t cur = (uint32_t) r[i << 1 | 1] << 1 | (uint32_t) r[i << 1];
-    hval         = (hval + (uint64_t) cur * p) % HASH_TABLE_SZ;
-    hval         = ((uint64_t) hval * p_r) % HASH_TABLE_SZ;
+    hval = ((uint64_t) hval + (HASH_TABLE_SZ - cur) + (uint64_t) cur * p)
+           % HASH_TABLE_SZ;
+    hval = ((uint64_t) hval * p_r) % HASH_TABLE_SZ;
     if (log_level >= LOG_DEBUG)
-      cerr << "[debug] i " << i << " hval " << hval << endl;
+      cerr << "[debug] i " << i << " hval " << hval << " cur " << cur << endl;
     if (!hash_table[hval].empty()) {
       chl_key_t new_key = {.id  = id,
                            .pos = state * READ_LENGTH + (i + 1) % READ_LENGTH};
@@ -254,26 +256,26 @@ void chl() {
     uint32_t hval     = get_hash(read_seq, HASH_TABLE_SZ);
     if (log_level >= LOG_INFO) cerr << "[info] hval " << hval << endl;
     // 0 源序列循环状态
-    if (rolling_hash_try_insert(id, hval, 0) == 0) continue;
+    if (rolling_hash_try_insert(id, read_seq, hval, 0) == 0) continue;
 
     read_seq.flip();
     uint32_t fhval = get_hash(read_seq, HASH_TABLE_SZ);
     // 1 补序列循环状态
     if (log_level >= LOG_INFO) cerr << "[info] fhval " << fhval << endl;
-    if (rolling_hash_try_insert(id, fhval, 1) == 0) continue;
+    if (rolling_hash_try_insert(id, read_seq, fhval, 1) == 0) continue;
     read_seq.flip();
 
     reverse_read(read_seq);
     uint32_t rhval = get_hash(read_seq, HASH_TABLE_SZ);
     // 2 逆序列循环状态
     if (log_level >= LOG_INFO) cerr << "[info] rhval " << rhval << endl;
-    if (rolling_hash_try_insert(id, rhval, 2) == 0) continue;
+    if (rolling_hash_try_insert(id, read_seq, rhval, 2) == 0) continue;
 
     read_seq.flip();
     uint32_t rfhval = get_hash(read_seq, HASH_TABLE_SZ);
     if (log_level >= LOG_INFO) cerr << "[info] rfhval " << rfhval << endl;
     // 3 逆补序列循环状态
-    if (rolling_hash_try_insert(id, rfhval, 3) == 0) continue;
+    if (rolling_hash_try_insert(id, read_seq, rfhval, 3) == 0) continue;
 
     list_chl_key_t ls;
     ls.push_back((chl_key_t){.id = id, .pos = 0});
