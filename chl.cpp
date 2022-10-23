@@ -288,7 +288,7 @@ const struct bendl_t {
 
 ofstream& operator<<(ofstream& ofs, const bendl_t& be) {
   const uint16_t bendl_ch = 0xffff;
-  ofs.write((char*) &bendl_ch, 2 * sizeof(char));
+  ofs.write((const char*) &bendl_ch, 2);
   return ofs;
 }
 
@@ -303,18 +303,18 @@ ofstream& operator<<(ofstream& ofs, const read_t& r) {
              | ((str[i + 2] - '0') << 5) | ((str[i + 3] - '0') << 4)
              | ((str[i + 4] - '0') << 3) | ((str[i + 5] - '0') << 2)
              | ((str[i + 6] - '0') << 1) | ((str[i + 7] - '0'));
-    ofs.write(&j, sizeof(char));
+    ofs.write(&j, 1);
   }
   return ofs;
 }
 
 ofstream& operator<<(ofstream& ofs, const chl_key_t& st) {
-  static uint32_t last_id;
-  if (st.pos == 0) ofs.write((const char*) &st.id, 4 * sizeof(char));
+  static uint32_t last_id = 0;
+  if (last_id == 0) ofs.write((const char*) &st.id, 4);
   else {
     uint32_t diff_id = st.id - last_id;
-    ofs.write((const char*) &st.pos, 2 * sizeof(char));
-    ofs.write((const char*) &diff_id, 4 * sizeof(char));
+    ofs.write((const char*) &st.pos, 2);
+    ofs.write((const char*) &diff_id, 4);
   }
   last_id = st.id;
   return ofs;
@@ -327,7 +327,7 @@ struct chl_id_t {
 ofstream& operator<<(ofstream& ofs, const chl_id_t& cid) {
   static uint32_t last_id = 0xffffffff;
   uint32_t        diff_id = last_id == 0xffffffff ? cid.id : cid.id - last_id;
-  ofs.write((const char*) &diff_id, 4 * sizeof(char));
+  ofs.write((const char*) &diff_id, 4);
   last_id = cid.id;
   return ofs;
 }
