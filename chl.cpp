@@ -309,8 +309,8 @@ ofstream& operator<<(ofstream& ofs, const read_t& r) {
 }
 
 ofstream& operator<<(ofstream& ofs, const chl_key_t& st) {
-  static uint32_t last_id = 0;
-  if (last_id == 0) ofs.write((const char*) &st.id, 4);
+  static uint32_t last_id = 0xffffffff;
+  if (last_id == 0xffffffff) ofs.write((const char*) &st.id, 4);
   else {
     uint32_t diff_id = st.id - last_id;
     ofs.write((const char*) &st.pos, 2);
