@@ -8,7 +8,7 @@ public:
   std::string p_;
   path(const std::string& path_str) : p_(path_str) { }
   path(const char* path_c_str = nullptr) : p_(std::string(path_c_str)) { }
-  std::string string() { return p_; }
+  std::string string() const { return p_; }
 };
 path operator/(const path& a, const path& b) {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) \

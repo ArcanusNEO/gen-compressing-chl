@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include <bitset>
 #include <cstdlib>
 #include <fstream>
@@ -11,6 +13,7 @@ namespace fs = filesystem_sim;
 #  include <filesystem>
 namespace fs        = std::filesystem;
 #endif
+
 using namespace std;
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) \
@@ -161,8 +164,8 @@ signed main(int argc, char* argv[]) {
   thread_number = max(thread_number, 1U);
   if (log_level >= LOG_INFO)
     cerr << "[info] begin unCHL..." << endl
-         << "[info] meta_file " << fs::path(meta_file) << endl
-         << "[info] output_file " << fs::path(output_file) << endl
+         << "[info] meta_file " << meta_file << endl
+         << "[info] output_file " << output_file << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;
   ifstream   ifs;
@@ -187,7 +190,7 @@ signed main(int argc, char* argv[]) {
   }
   if (cin_buf) cin.rdbuf(cin_buf);
   ifs.close();
-  ifs.open(ido_file);
+  ifs.open(ido_file.string());
   read_bin_length = (read_length + 3) / 4;  // Byte
   uint64_t buf[8];
   while (ifs.read((char*) buf, read_bin_length)) {
@@ -197,7 +200,7 @@ signed main(int argc, char* argv[]) {
     iter_assign(read_v[id], buf);
   }
   for (const auto& idp_file : idp_file_ls) {
-    ifs.open(idp_file);
+    ifs.open(idp_file.string());
     while (ifs.read((char*) buf, read_bin_length)) {
       uint32_t id;
       ifs.read((char*) &id, 4);
