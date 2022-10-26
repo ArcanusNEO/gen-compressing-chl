@@ -6,7 +6,7 @@
 #include <iostream>
 #include <list>
 #include <thread>
-#ifdef USE_FS_SIM
+#if USE_FS_SIM == 1
 #  include "filesystem_sim.hpp"
 namespace fs = filesystem_sim;
 #else

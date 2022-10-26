@@ -6,7 +6,7 @@
 #include <iostream>
 #include <list>
 #include <thread>
-#ifdef USE_FS_SIM
+#if USE_FS_SIM == 1
 #  include "filesystem_sim.hpp"
 namespace fs = filesystem_sim;
 #else
@@ -156,6 +156,15 @@ string translate(uint64_t raw_read[8]) {
 }
 
 void transform_read(uint64_t new_read[8], uint16_t pos, uint64_t read_ref[8]) {
+  if (0 <= pos && pos < read_length) {
+    // 0 源序列循环状态
+  } else if (read_length <= pos && pos < 2 * read_length) {
+    // 1 补序列循环状态
+  } else if (2 * read_length <= pos && pos < 3 * read_length) {
+    // 2 逆序列循环状态
+  } else if (3 * read_length <= pos && pos < 4 * read_length) {
+    // 3 逆补序列循环状态
+  }
 }
 
 signed main(int argc, char* argv[]) {
