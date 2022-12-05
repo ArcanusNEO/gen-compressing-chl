@@ -7,27 +7,28 @@
 #include <list>
 #include <thread>
 #if USE_FS_SIM == 1
-#  include "filesystem_sim.hpp"
+  #include "filesystem_sim.hpp"
 namespace fs = filesystem_sim;
 #else
-#  include <filesystem>
-namespace fs        = std::filesystem;
+  #include <filesystem>
+namespace fs = std::filesystem;
 #endif
 
 using namespace std;
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) \
-  || defined(__WINDOWS_)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || \
+  defined(__NT__) || defined(__WINDOWS_)
 const char opt_head = '/';
 #else
 const char opt_head = '-';
 #endif
 
 // -o -t -vvvv -s
-string   input_file = "-", output_path = "output";
+string input_file = "-", output_path = "output";
 unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
 enum log_level_t { LOG_SILENT, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG };
+
 unsigned log_level = LOG_SILENT;
 
 enum cmd_opt_t {
@@ -39,20 +40,20 @@ enum cmd_opt_t {
   CMD_OPTION_LOG_LEVEL_SILENT
 };
 
-uint8_t    base_ai_map[256];
+uint8_t base_ai_map[256];
 const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
 
 #ifndef MX_READ_LIST_SZ
-#  define MX_READ_LIST_SZ 0x10000000
+  #define MX_READ_LIST_SZ 0x10000000
 #endif
 
 #ifndef READ_LENGTH
-#  define READ_LENGTH 150
+  #define READ_LENGTH 150
 #endif
 #define BITSET_SZ (READ_LENGTH * 2)
 
 using read_t = bitset<BITSET_SZ>;
-read_t   read_v[MX_READ_LIST_SZ];
+read_t read_v[MX_READ_LIST_SZ];
 uint32_t read_counter;
 uint32_t exp_read_counter;
 
@@ -60,10 +61,11 @@ struct chl_key_t {
   uint32_t id;
   uint16_t pos;
 };
+
 using list_chl_key_t = list<chl_key_t>;
 
 #ifndef HASH_TABLE_SZ
-#  define HASH_TABLE_SZ 314606869
+  #define HASH_TABLE_SZ 314606869
 #endif
 
 list<list_chl_key_t> hash_table[HASH_TABLE_SZ];
@@ -72,59 +74,59 @@ void parse_opt(char* opt_token) {
   if (opt_token == nullptr) return;
   static enum cmd_opt_t opt_type = CMD_OPTION_NULL;
   if (opt_token[0] == opt_head) switch (opt_token[1]) {
-      case 'o':
+      case 'o' :
         opt_type = CMD_OPTION_OUTPUT_PATH;
         opt_token += 2;
         break;
-      case 't':
+      case 't' :
         opt_type = CMD_OPTION_THREAD_NUMBER;
         opt_token += 2;
         break;
-      case 'v':
-        opt_type  = CMD_OPTION_LOG_LEVEL;
+      case 'v' :
+        opt_type = CMD_OPTION_LOG_LEVEL;
         log_level = 1;
         for (opt_token += 2; *opt_token == 'v'; ++opt_token)
           log_level = min(log_level + 1, (unsigned) LOG_DEBUG);
         break;
-      case 's':
+      case 's' :
         opt_type = CMD_OPTION_LOG_LEVEL_SILENT;
         opt_token += 2;
         log_level = 0;
         break;
-      default: break;
+      default : break;
     }
   if (opt_type == CMD_OPTION_NULL) opt_type = CMD_OPTION_INPUT_FILE;
   switch (opt_type) {
-    case CMD_OPTION_INPUT_FILE:
+    case CMD_OPTION_INPUT_FILE :
       input_file = opt_token;
-      opt_type   = CMD_OPTION_NULL;
+      opt_type = CMD_OPTION_NULL;
       break;
-    case CMD_OPTION_OUTPUT_PATH:
+    case CMD_OPTION_OUTPUT_PATH :
       output_path = opt_token;
-      opt_type    = CMD_OPTION_NULL;
+      opt_type = CMD_OPTION_NULL;
       break;
-    case CMD_OPTION_THREAD_NUMBER: {
-      auto i        = atoi(opt_token);
+    case CMD_OPTION_THREAD_NUMBER : {
+      auto i = atoi(opt_token);
       thread_number = i > 0 ? i : thread_number;
-      opt_type      = CMD_OPTION_NULL;
+      opt_type = CMD_OPTION_NULL;
       break;
     }
-    case CMD_OPTION_LOG_LEVEL: opt_type = CMD_OPTION_NULL; break;
-    case CMD_OPTION_LOG_LEVEL_SILENT: opt_type = CMD_OPTION_NULL; break;
-    default: break;
+    case CMD_OPTION_LOG_LEVEL : opt_type = CMD_OPTION_NULL; break;
+    case CMD_OPTION_LOG_LEVEL_SILENT : opt_type = CMD_OPTION_NULL; break;
+    default : break;
   }
 }
 
 void read_sequence() {
   string base_seq_str;
   while (cin >> base_seq_str) {
-    auto&    base_seq = read_v[read_counter++];
-    uint32_t i        = 0;
+    auto& base_seq = read_v[read_counter++];
+    uint32_t i = 0;
     for (const auto& ch : base_seq_str) {
-      auto     j           = base_ai_map[ch];
-      uint32_t k           = READ_LENGTH - i - 1;
+      auto j = base_ai_map[ch];
+      uint32_t k = READ_LENGTH - i - 1;
       base_seq[k << 1 | 1] = j & 0x02;
-      base_seq[k << 1]     = j & 0x01;
+      base_seq[k << 1] = j & 0x01;
       ++i;
     }
   }
@@ -164,7 +166,7 @@ inline void reverse_read(read_t& r) {
 
 uint32_t get_hash(const read_t& r, uint32_t modulo) {
   if (log_level >= LOG_DEBUG) cerr << "[debug] read bin " << r << endl;
-  int      res = BITSET_SZ;
+  int res = BITSET_SZ;
   uint64_t rem = 0;
   while (res > 0) {
     int rsz;
@@ -178,7 +180,7 @@ uint32_t get_hash(const read_t& r, uint32_t modulo) {
     read_t t = r >> res;
     t &= 0xffffffff;
     uint32_t x = t.to_ulong();
-    rem        = (rem << rsz) | x;
+    rem = (rem << rsz) | x;
     if (log_level >= LOG_DEBUG)
       cerr << "[debug] rem " << rem << " rsz " << rsz << " x " << x << endl;
     rem %= modulo;
@@ -211,15 +213,15 @@ bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
   const auto& read_new = read_v[chl_new.id];
   if (chl_new.pos < 2 * READ_LENGTH) {
     for (uint32_t i = 0, j = chl_new.pos % READ_LENGTH; i < READ_LENGTH;
-         ++i, j            = (j + 1) % READ_LENGTH)
-      if (read_ref[i << 1 | 1] != read_new[j << 1 | 1]
-          || read_ref[i << 1] != read_new[j << 1])
+         ++i, j = (j + 1) % READ_LENGTH)
+      if (read_ref[i << 1 | 1] != read_new[j << 1 | 1] ||
+        read_ref[i << 1] != read_new[j << 1])
         return true;
   } else {
     for (uint32_t i = 0, j = chl_new.pos % READ_LENGTH; i < READ_LENGTH;
-         ++i, j            = (READ_LENGTH - 1 + j) % READ_LENGTH)
-      if (read_ref[i << 1 | 1] != read_new[j << 1 | 1]
-          || read_ref[i << 1] != read_new[j << 1])
+         ++i, j = (READ_LENGTH - 1 + j) % READ_LENGTH)
+      if (read_ref[i << 1 | 1] != read_new[j << 1 | 1] ||
+        read_ref[i << 1] != read_new[j << 1])
         return true;
   }
   return false;
@@ -227,9 +229,9 @@ bool hash_collision(const chl_key_t& chl_ref, const chl_key_t& chl_new) {
 
 // return 1 for fail
 // return 0 for success
-int rolling_hash_try_insert(uint32_t id, const read_t& ref_read, uint32_t hval,
-                            int state) {
-  const static uint32_t p   = fast_pow(4ULL, READ_LENGTH, HASH_TABLE_SZ);
+int rolling_hash_try_insert(
+  uint32_t id, const read_t& ref_read, uint32_t hval, int state) {
+  const static uint32_t p = fast_pow(4ULL, READ_LENGTH, HASH_TABLE_SZ);
   const static uint32_t p_r = fast_pow(4ULL, HASH_TABLE_SZ - 2, HASH_TABLE_SZ);
   {
     static int is_printed = 0;
@@ -239,14 +241,14 @@ int rolling_hash_try_insert(uint32_t id, const read_t& ref_read, uint32_t hval,
   const read_t& r = ref_read;
   for (uint32_t i = 0; i < READ_LENGTH; ++i) {
     uint32_t cur = (uint32_t) r[i << 1 | 1] << 1 | (uint32_t) r[i << 1];
-    hval = ((uint64_t) hval + (HASH_TABLE_SZ - cur) + (uint64_t) cur * p)
-           % HASH_TABLE_SZ;
+    hval = ((uint64_t) hval + (HASH_TABLE_SZ - cur) + (uint64_t) cur * p) %
+      HASH_TABLE_SZ;
     hval = ((uint64_t) hval * p_r) % HASH_TABLE_SZ;
     if (log_level >= LOG_DEBUG)
       cerr << "[debug] i " << i << " hval " << hval << " cur " << cur << endl;
     if (!hash_table[hval].empty()) {
-      chl_key_t new_key = {.id  = id,
-                           .pos = state * READ_LENGTH + (i + 1) % READ_LENGTH};
+      chl_key_t new_key = {
+        .id = id, .pos = state * READ_LENGTH + (i + 1) % READ_LENGTH};
       for (auto& ls : hash_table[hval]) {
         const auto& chl_ref = ls.front();
         if (!hash_collision(chl_ref, new_key)) {
@@ -264,8 +266,8 @@ int rolling_hash_try_insert(uint32_t id, const read_t& ref_read, uint32_t hval,
 
 void chl() {
   for (uint32_t id = 0; id < read_counter; ++id) {
-    read_t   read_seq = read_v[id];
-    uint32_t hval     = get_hash(read_seq, HASH_TABLE_SZ);
+    read_t read_seq = read_v[id];
+    uint32_t hval = get_hash(read_seq, HASH_TABLE_SZ);
     if (log_level >= LOG_INFO) cerr << "[info] hval " << hval << endl;
     // 0 源序列循环状态
     if (rolling_hash_try_insert(id, read_seq, hval, 0) == 0) continue;
@@ -290,7 +292,7 @@ void chl() {
     if (rolling_hash_try_insert(id, read_seq, rfhval, 3) == 0) continue;
 
     list_chl_key_t ls;
-    ls.push_back((chl_key_t){.id = id, .pos = 0});
+    ls.push_back((chl_key_t) {.id = id, .pos = 0});
     hash_table[hval].push_back(ls);
   }
 }
@@ -305,16 +307,16 @@ ofstream& operator<<(ofstream& ofs, const bendl_t& be) {
 }
 
 ofstream& operator<<(ofstream& ofs, const read_t& r) {
-  string             str = r.to_string();
-  int                rem = str.size() % 8;
-  static const char* v[] = {"",     "0000000", "000000", "00000",
-                            "0000", "000",     "00",     "0"};
+  string str = r.to_string();
+  int rem = str.size() % 8;
+  static const char* v[] = {
+    "", "0000000", "000000", "00000", "0000", "000", "00", "0"};
   str += v[rem];
   for (size_t i = 0; i < str.size(); i += 8) {
-    char j = ((str[i] - '0') << 7) | ((str[i + 1] - '0') << 6)
-             | ((str[i + 2] - '0') << 5) | ((str[i + 3] - '0') << 4)
-             | ((str[i + 4] - '0') << 3) | ((str[i + 5] - '0') << 2)
-             | ((str[i + 6] - '0') << 1) | ((str[i + 7] - '0'));
+    char j = ((str[i] - '0') << 7) | ((str[i + 1] - '0') << 6) |
+      ((str[i + 2] - '0') << 5) | ((str[i + 3] - '0') << 4) |
+      ((str[i + 4] - '0') << 3) | ((str[i + 5] - '0') << 2) |
+      ((str[i + 6] - '0') << 1) | ((str[i + 7] - '0'));
     ofs.write(&j, 1);
   }
   return ofs;
@@ -338,7 +340,7 @@ struct chl_id_t {
 
 ofstream& operator<<(ofstream& ofs, const chl_id_t& cid) {
   static uint32_t last_id = 0xffffffff;
-  uint32_t        diff_id = last_id == 0xffffffff ? cid.id : cid.id - last_id;
+  uint32_t diff_id = last_id == 0xffffffff ? cid.id : cid.id - last_id;
   ofs.write((const char*) &diff_id, 4);
   last_id = cid.id;
   return ofs;
@@ -358,8 +360,8 @@ void dump_bin() {
   for (uint32_t i = 0; i < HASH_TABLE_SZ; ++i)
     for (const auto& ls : hash_table[i]) {
       const auto& f_st = ls.front();
-      const auto& r    = read_v[f_st.id];
-      if (ls.size() == 1) ido << r << (chl_id_t){f_st.id};
+      const auto& r = read_v[f_st.id];
+      if (ls.size() == 1) ido << r << (chl_id_t) {f_st.id};
       else {
         idp << r;
         for (const auto& st : ls) idp << st;
@@ -369,14 +371,14 @@ void dump_bin() {
 }
 
 void dump_meta() {
-  auto ido_file  = fs::path(output_path) / "ido.bin";
-  auto idp_file  = fs::path(output_path) / "idp.bin";
+  auto ido_file = fs::path(output_path) / "ido.bin";
+  auto idp_file = fs::path(output_path) / "idp.bin";
   auto meta_file = fs::path(output_path) / "chl.meta";
   if (fs::exists(meta_file) && log_level >= LOG_WARNING)
     cerr << "[warning] meta file " << meta_file
          << " already exists, overwriting..." << endl;
   ofstream meta(meta_file.string(), ios::out | ios::trunc);
-  auto     cout_buf = cout.rdbuf(meta.rdbuf());
+  auto cout_buf = cout.rdbuf(meta.rdbuf());
 #define endl '\n'
   cout << "ido-file" << endl;
   cout << ido_file.string() << endl;
@@ -401,21 +403,21 @@ signed main(int argc, char* argv[]) {
          << "[info] log_level " << log_level << endl;
   fs::remove_all(output_path);
   fs::create_directory(output_path);
-  ifstream   ifs;
+  ifstream ifs;
   streambuf* cin_buf = nullptr;
   if (input_file != "-") {
     ifs.open(input_file);
     cin_buf = cin.rdbuf(ifs.rdbuf());
   }
   uint32_t cnt;
-  string   read_path;
-  string   str;
+  string read_path;
+  string str;
   getline(cin, str);
   exp_read_counter = stoul(str);
   while (getline(cin, read_path)) {
     getline(cin, str);
     cnt = stoul(str);
-    ifstream   read_ifs;
+    ifstream read_ifs;
     streambuf* cin_buf_bak = nullptr;
     if (read_path != "-") {
       read_ifs.open(read_path);

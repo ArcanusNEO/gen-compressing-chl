@@ -7,27 +7,28 @@
 #include <list>
 #include <thread>
 #if USE_FS_SIM == 1
-#  include "filesystem_sim.hpp"
+  #include "filesystem_sim.hpp"
 namespace fs = filesystem_sim;
 #else
-#  include <filesystem>
-namespace fs        = std::filesystem;
+  #include <filesystem>
+namespace fs = std::filesystem;
 #endif
 
 using namespace std;
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) \
-  || defined(__WINDOWS_)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || \
+  defined(__NT__) || defined(__WINDOWS_)
 const char opt_head = '/';
 #else
 const char opt_head = '-';
 #endif
 
 // -o -t -vvvv -s
-string   meta_file = "-", output_file = "-";
+string meta_file = "-", output_file = "-";
 unsigned thread_number = max(thread::hardware_concurrency(), 1U);
 
 enum log_level_t { LOG_SILENT, LOG_ERROR, LOG_WARNING, LOG_INFO, LOG_DEBUG };
+
 unsigned log_level = LOG_SILENT;
 
 enum cmd_opt_t {
@@ -43,55 +44,55 @@ void parse_opt(char* opt_token) {
   if (opt_token == nullptr) return;
   static enum cmd_opt_t opt_type = CMD_OPTION_NULL;
   if (opt_token[0] == opt_head) switch (opt_token[1]) {
-      case 'o':
+      case 'o' :
         opt_type = CMD_OPTION_OUTPUT_FILE;
         opt_token += 2;
         break;
-      case 't':
+      case 't' :
         opt_type = CMD_OPTION_THREAD_NUMBER;
         opt_token += 2;
         break;
-      case 'v':
-        opt_type  = CMD_OPTION_LOG_LEVEL;
+      case 'v' :
+        opt_type = CMD_OPTION_LOG_LEVEL;
         log_level = 1;
         for (opt_token += 2; *opt_token == 'v'; ++opt_token)
           log_level = min(log_level + 1, (unsigned) LOG_DEBUG);
         break;
-      case 's':
+      case 's' :
         opt_type = CMD_OPTION_LOG_LEVEL_SILENT;
         opt_token += 2;
         log_level = 0;
         break;
-      default: break;
+      default : break;
     }
   if (opt_type == CMD_OPTION_NULL) opt_type = CMD_OPTION_META_FILE;
   switch (opt_type) {
-    case CMD_OPTION_META_FILE:
+    case CMD_OPTION_META_FILE :
       meta_file = opt_token;
-      opt_type  = CMD_OPTION_NULL;
+      opt_type = CMD_OPTION_NULL;
       break;
-    case CMD_OPTION_OUTPUT_FILE:
+    case CMD_OPTION_OUTPUT_FILE :
       output_file = opt_token;
-      opt_type    = CMD_OPTION_NULL;
+      opt_type = CMD_OPTION_NULL;
       break;
-    case CMD_OPTION_THREAD_NUMBER: {
-      auto i        = atoi(opt_token);
+    case CMD_OPTION_THREAD_NUMBER : {
+      auto i = atoi(opt_token);
       thread_number = i > 0 ? i : thread_number;
-      opt_type      = CMD_OPTION_NULL;
+      opt_type = CMD_OPTION_NULL;
       break;
     }
-    case CMD_OPTION_LOG_LEVEL: opt_type = CMD_OPTION_NULL; break;
-    case CMD_OPTION_LOG_LEVEL_SILENT: opt_type = CMD_OPTION_NULL; break;
-    default: break;
+    case CMD_OPTION_LOG_LEVEL : opt_type = CMD_OPTION_NULL; break;
+    case CMD_OPTION_LOG_LEVEL_SILENT : opt_type = CMD_OPTION_NULL; break;
+    default : break;
   }
 }
 
-uint8_t    base_ai_map[256];
+uint8_t base_ai_map[256];
 const char base_ia_map[4] = {'A', 'C', 'G', 'T'};
-string     base4_is_map[256];
+string base4_is_map[256];
 
 #ifndef MX_READ_LIST_SZ
-#  define MX_READ_LIST_SZ 0x10000000
+  #define MX_READ_LIST_SZ 0x10000000
 #endif
 
 uint64_t read_v[MX_READ_LIST_SZ][8];
@@ -148,8 +149,8 @@ string translate(uint64_t raw_read[8]) {
        i + 1 < (uint8_t*) raw_read + read_bin_length; ++i)
     ret += base4_is_map[*i];
   uint8_t* prem_base4 = (uint8_t*) raw_read + read_bin_length - 1;
-  uint8_t  rem_base4  = *prem_base4;
-  int      rem        = read_length % 4;
+  uint8_t rem_base4 = *prem_base4;
+  int rem = read_length % 4;
   for (int i = 0; i < rem; ++i)
     ret.push_back(base_ia_map[rem_base4 >> (6 - i * 2)]);
   return ret;
@@ -177,15 +178,15 @@ signed main(int argc, char* argv[]) {
          << "[info] output_file " << output_file << endl
          << "[info] thread_number " << thread_number << endl
          << "[info] log_level " << log_level << endl;
-  ifstream   ifs;
+  ifstream ifs;
   streambuf* cin_buf = nullptr;
   if (meta_file != "-") {
     ifs.open(meta_file);
     cin_buf = cin.rdbuf(ifs.rdbuf());
   }
   list<fs::path> idp_file_ls;
-  fs::path       ido_file;
-  string         tag;
+  fs::path ido_file;
+  string tag;
   while (getline(cin, tag)) {
     if (tag.find("ido") != string::npos) {
       string f;
@@ -215,7 +216,7 @@ signed main(int argc, char* argv[]) {
       ifs.read((char*) &id, 4);
       read_counter = max(read_counter, id);
       iter_assign(read_v[id], buf);
-      auto     read_ref = read_v[id];
+      auto read_ref = read_v[id];
       uint16_t pos;
       while (ifs.read((char*) &pos, 2) && ~pos) {
         ifs.read((char*) &id, 4);
@@ -225,7 +226,7 @@ signed main(int argc, char* argv[]) {
       }
     }
   }
-  ofstream   ofs;
+  ofstream ofs;
   streambuf* cout_buf = nullptr;
   if (output_file != "-") {
     ofs.open(output_file);
