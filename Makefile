@@ -13,10 +13,10 @@ CXXFLAGS += -std=c++17
 all: chl unchl
 
 chl: chl.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o$@ $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o$@ $<
 
 unchl: unchl.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o$@ $^
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o$@ $<
 
 clean:
 	rm -rf chl unchl
